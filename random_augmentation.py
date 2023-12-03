@@ -12,10 +12,10 @@ class Augment():
     def __init__(self):
         self.brightness = transforms.ColorJitter(brightness=0, contrast=0, saturation=0, hue=0)
         self.contrast = transforms.ColorJitter(brightness=0, contrast=0, saturation=0, hue=0)
-        self.rain = K.RandomRain(p=1.0, number_of_drops=(400, 800), drop_height=(4, 10), drop_width=(-4, 4))
-        self.snow = K.RandomSnow(snow_coefficient=(0.5, 0.5), brightness=(2, 2), same_on_batch=False, p=1.0, keepdim=False)
+        self.snow = K.RandomSnow(p=1.0, snow_coefficient=(0.5, 0.5), brightness=(2, 2))
+        self.motion_blur = K.RandomMotionBlur(p=1.0, kernel_size=(6, 6), angle=(-60, 60), direction=(-1, 1))
 
-    def RandomNight(self, image):
+    def night(self, image):
         brightness_factor = (0, 0.5) 
         self.brightness.brightness = brightness_factor
 
@@ -27,12 +27,18 @@ class Augment():
 
         return image
     
-    def RandomRain(self, image):
-        image = self.rain(image)
+    def snow(self, image):
+        image = self.snow(image)
         return image
     
-    def RandomSnow(self, image):
-        image = self.snow(image)
+    def bright(self, image):
+        brightness_factor = (1.5, 2.0)
+        self.brightness.brightness = brightness_factor
+        image = self.brightness(image)
+        return image
+
+    def blur(self, image):
+        image = self.motion_blur(image)
         return image
 
 if __name__ == "__main__":
@@ -42,10 +48,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # make directory
-    aug_dict = {"night": Augment().RandomNight, "rain": Augment().RandomRain, "snow": Augment().RandomSnow}
+    aug_dict = {"night": Augment().night, "snow": Augment().snow, "bright": Augment().bright, "blur": Augment().blur}
 
     # import all images from train directory
-    # augment = Augment()
     image_paths = glob.glob("dataset/train/*.jpg")
     out_dir = f"dataset/train_augmented_{args.augment}/"
     if not os.path.exists(out_dir):
