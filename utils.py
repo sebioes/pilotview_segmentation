@@ -148,9 +148,9 @@ def get_num_params(model):
 
 #################### for Visualization of Infereced Images ####################
 
-def get_predictor(cfg, model_name: str):
+def get_predictor(cfg, model_name:str, threshold:float=0.5):
     cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, model_name)
-    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7  # set the testing threshold for this model
+    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = threshold  # set the testing threshold for this model
     cfg.DATASETS.TEST = (custom_dataset_dir + "_val", )
     predictor = DefaultPredictor(cfg)
     return predictor
@@ -161,12 +161,12 @@ def visualize_prediction(predictor, dataset_type:str="val", num_display:int=3):
     new_stuff_classes = args.new_stuff_classes
 
     for d in ["train", "val"]:
-        DatasetCatalog.register(custom_dataset_dir + "_" + d, lambda d=d: get_data_dicts(custom_dataset_dir + "/" + d))
-        MetadataCatalog.get(custom_dataset_dir + "_" + d).set(thing_classes=new_thing_classes, stuff_classes=new_stuff_classes)
-    metadata = MetadataCatalog.get(custom_dataset_dir + "_train")
+        DatasetCatalog.register(vis_dir + "_" + d, lambda d=d: get_data_dicts(custom_dataset_dir + "/" + d))
+        MetadataCatalog.get(vis_dir + "_" + d).set(thing_classes=new_thing_classes, stuff_classes=new_stuff_classes)
+    metadata = MetadataCatalog.get(vis_dir + "_train")
 
     """Visualize prediction on certain dataset (val or test)"""
-    dir = os.path.join(custom_dataset_dir, dataset_type)
+    dir = os.path.join(vis_dir, dataset_type)
     count = 0
     for d in random.sample(os.listdir(dir), len(os.listdir(dir))):
         if d[-4:] in [".jpg", ".png", "jpeg"] and count < num_display:

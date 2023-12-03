@@ -77,5 +77,3 @@ if __name__ == "__main__":
         image = transforms.ToPILImage()(image)
         image.save(out_dir + path.split("/")[-1].split(".")[0] + f"_augmented_{args.augment}.jpg")
         
-
-
