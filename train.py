@@ -51,9 +51,6 @@ if __name__ == "__main__":
     for arg in vars(args):
         print(arg, getattr(args, arg))
 
-    # Custom dataset directory folder name
-    custom_dataset_dir = "dataset"
-
     # New classes
     new_classes = args.new_thing_classes + args.new_stuff_classes
 
@@ -75,7 +72,7 @@ if __name__ == "__main__":
     # Retrieve the model
     cfg = init_cfg(base_model)
     model = build_model(cfg)
-
+    
     # Print number of parameters
     get_num_params(model)
 
