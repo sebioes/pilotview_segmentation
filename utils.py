@@ -182,8 +182,8 @@ def visualize_prediction(predictor, dataset_type:str="val", num_display:int=3):
             plt.figure(figsize = (12, 12))
             plt.imshow(v.get_image())
 
-            if not os.path.exists(os.path.join(custom_dataset_dir, vis_dir)):
-                os.makedirs(os.path.join(custom_dataset_dir, vis_dir))
-            plt.savefig(os.path.join(custom_dataset_dir, vis_dir, d)) # save the visualized inference
+            if not os.path.exists(os.path.join(vis_dir, "vis")):
+                os.makedirs(os.path.join(vis_dir, "vis"))
+            plt.savefig(os.path.join(vis_dir, "vis", d)) # save the visualized inference
 
             count += 1
