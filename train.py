@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from args import get_args
-from utils import generate_segmentation_file, get_data_dicts, MyTrainer, train, init_cfg, get_num_params, get_predictor, visualize_prediction
+from utils import get_data_dicts, train, init_cfg, get_num_params
 
 sys.path.insert(0, os.path.abspath('./detectron2'))
 import torch
@@ -57,15 +57,8 @@ if __name__ == "__main__":
     # Number of new classes
     num_new_classes = len(new_classes)
 
-    # Generate the custom dataset
-    for d in ["train", "val"]:
-        os.makedirs(os.path.join(custom_dataset_dir, d, "segmentation"), exist_ok=True)
-        generate_segmentation_file(os.path.join(custom_dataset_dir, d))
-
-    # Register custom dataset
     for d in ["train", "val"]:
         DatasetCatalog.register(custom_dataset_dir + "_" + d, lambda d=d: get_data_dicts(custom_dataset_dir + "/" + d))
-        # For semantic / panoptic segmentation, add a stuff class.
         MetadataCatalog.get(custom_dataset_dir + "_" + d).set(thing_classes=new_thing_classes, stuff_classes=new_stuff_classes)
     metadata = MetadataCatalog.get(custom_dataset_dir + "_train")
 
@@ -85,4 +78,3 @@ if __name__ == "__main__":
         dist_url=None,
         args=(cfg,),
         )
-    

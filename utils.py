@@ -23,10 +23,13 @@ from detectron2.structures import BoxMode
 
 from detectron2.data import DatasetMapper
 from detectron2.data import build_detection_train_loader
+from detectron2.data import MetadataCatalog, DatasetCatalog
+from detectron2.utils.visualizer import ColorMode
 
 # Get arguments
 args = get_args()
 custom_dataset_dir = args.data_dir
+vis_dir = args.vis_dir
 batch = args.batch
 lr = args.lr
 iter = args.iter
@@ -36,35 +39,6 @@ backbone_freeze_at = args.backbone_freeze_at
 roi_heads_freeze_at = args.roi_heads_freeze_at
 new_classes = args.new_thing_classes + args.new_stuff_classes
 
-def generate_segmentation_file(img_dir):
-    json_file = os.path.join(img_dir, "via_region_data.json")
-    with open(json_file) as f:
-        imgs_anns = json.load(f)
-
-    for idx, v in enumerate(imgs_anns.values()):
-        filename = os.path.join(img_dir, v["filename"])
-        height, width = cv2.imread(filename).shape[:2]
-
-        # Because we only have one object category (balloon) to train,
-        # 1 is the category of the background
-        segmentation = np.ones((height, width), dtype=np.uint8)
-
-        annos = v["regions"]
-        for _, anno in annos.items():
-            # assert not anno["region_attributes"]
-            label = anno["region_attributes"]["label"]
-            anno = anno["shape_attributes"]
-            px = anno["all_points_x"]
-            py = anno["all_points_y"]
-            poly = [(x + 0.5, y + 0.5) for x, y in zip(px, py)]
-            poly = np.array(poly, np.int32)
-
-            # category_id = 0  # change to 255 for better visualisation
-            category_id = new_classes.index(label)
-            cv2.fillPoly(segmentation, [poly], category_id)
-            output = os.path.join(img_dir, "segmentation", v["filename"])
-            cv2.imwrite(output, segmentation)
-
 def get_data_dicts(img_dir):
     json_file = os.path.join(img_dir, "via_region_data.json")
     with open(json_file) as f:
@@ -73,17 +47,15 @@ def get_data_dicts(img_dir):
     dataset_dicts = []
     for idx, v in enumerate(imgs_anns.values()):
         record = {}
-
+        
         filename = os.path.join(img_dir, v["filename"])
         height, width = cv2.imread(filename).shape[:2]
-
+        
         record["file_name"] = filename
         record["image_id"] = idx
         record["height"] = height
         record["width"] = width
-        # Pixel-wise segmentation
-        record["sem_seg_file_name"] = os.path.join(img_dir, "segmentation", v["filename"])
-
+      
         annos = v["regions"]
         objs = []
         for _, anno in annos.items():
@@ -101,10 +73,6 @@ def get_data_dicts(img_dir):
                 "segmentation": [poly],
                 # "category_id": 0,
                 "category_id": new_classes.index(label),
-                # "Things" are well-defined countable objects,
-                # while "stuff" is amorphous something with a different label than the background.
-                "isthing": True,
-                "iscrowd": 0
             }
             objs.append(obj)
         record["annotations"] = objs
@@ -132,7 +100,6 @@ def init_cfg(config_file: str):
     """Get configuration"""
     cfg = get_cfg()
     cfg.merge_from_file(model_zoo.get_config_file(config_file))
-    # cfg.DATASETS.TRAIN = ("balloon_train",)
     cfg.DATASETS.TRAIN = (custom_dataset_dir + "_train",)
     cfg.DATASETS.TEST = ()
     cfg.DATALOADER.NUM_WORKERS = 2
@@ -189,7 +156,14 @@ def get_predictor(cfg, model_name: str):
     return predictor
 
 def visualize_prediction(predictor, dataset_type:str="val", num_display:int=3):
-    metadata = MetadataCatalog.get(custom_dataset_dir + "_" + dataset_type)
+    args = get_args()
+    new_thing_classes = args.new_thing_classes
+    new_stuff_classes = args.new_stuff_classes
+
+    for d in ["train", "val"]:
+        DatasetCatalog.register(custom_dataset_dir + "_" + d, lambda d=d: get_data_dicts(custom_dataset_dir + "/" + d))
+        MetadataCatalog.get(custom_dataset_dir + "_" + d).set(thing_classes=new_thing_classes, stuff_classes=new_stuff_classes)
+    metadata = MetadataCatalog.get(custom_dataset_dir + "_train")
 
     """Visualize prediction on certain dataset (val or test)"""
     dir = os.path.join(custom_dataset_dir, dataset_type)
@@ -207,5 +181,9 @@ def visualize_prediction(predictor, dataset_type:str="val", num_display:int=3):
             v = v.draw_instance_predictions(outputs["instances"].to("cpu"))
             plt.figure(figsize = (12, 12))
             plt.imshow(v.get_image())
-            plt.show()
+
+            if not os.path.exists(os.path.join(custom_dataset_dir, vis_dir)):
+                os.makedirs(os.path.join(custom_dataset_dir, vis_dir))
+            plt.savefig(os.path.join(custom_dataset_dir, vis_dir, d)) # save the visualized inference
+
             count += 1

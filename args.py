@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath('./detectron2'))
 from detectron2.data import transforms as T
 
 """Data augmentation for training"""
-augmentations = [T.RandomRotation(angle=[-10, 10])]
+augmentations = []
 
 """Get arguments (hyperparams)"""
 def get_args():
@@ -13,6 +13,7 @@ def get_args():
     
     # Configurations
     parser.add_argument('--data_dir', type=str, default='dataset', help='Custom dataset directory')
+    parser.add_argument('--vis_dir', type=str, default='vis', help='Directory for visualization')
     parser.add_argument('--num_gpus_per_machine', type=int, default=1, help='Number of GPUs per machine')
     parser.add_argument('--num_machines', type=int, default=1, help='Number of machines')
     parser.add_argument('--model', type=str, default='COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml', help='Base model')
