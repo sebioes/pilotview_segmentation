@@ -1,4 +1,4 @@
-# Cockpit View Segmentation - Closing Sim2Real Gap
+# Cockpit View Instance Segmentation - Closing Sim2Real Gap
 ## For Adaptive Co-pilot Systems towards Next Gen Air Mobility
 
 <img src="https://github.com/sjhpark/pilotview_segmentation/assets/83327791/0513ae79-ff3c-48a3-b6c3-3e3f7bbd770e" width="500">
