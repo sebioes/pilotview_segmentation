@@ -11,5 +11,5 @@ base_model = args.model
 
 cfg = init_cfg(base_model)
 
-predictor = get_predictor(cfg, "model_final.pth", threshold=0.5)
-visualize_prediction(predictor, "test", num_display=11)
+predictor = get_predictor(cfg, "model_final_iter3000_batch4_threshold0.7_freeze0.pth", threshold=0.6)
+visualize_prediction(predictor, "test", num_display=248)

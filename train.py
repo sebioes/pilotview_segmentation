@@ -28,6 +28,7 @@ if __name__ == "__main__":
     # Get arguments (hyperparams)
     args = get_args()
     custom_dataset_dir = args.data_dir
+    print(custom_dataset_dir,"####################")
     num_gpus_per_machine = args.num_gpus_per_machine
     num_machines = args.num_machines
     base_model = args.model
@@ -61,7 +62,7 @@ if __name__ == "__main__":
         DatasetCatalog.register(custom_dataset_dir + "_" + d, lambda d=d: get_data_dicts(custom_dataset_dir + "/" + d))
         MetadataCatalog.get(custom_dataset_dir + "_" + d).set(thing_classes=new_thing_classes, stuff_classes=new_stuff_classes)
     metadata = MetadataCatalog.get(custom_dataset_dir + "_train")
-
+    
     # Retrieve the model
     cfg = init_cfg(base_model)
     model = build_model(cfg)

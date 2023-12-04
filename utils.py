@@ -177,7 +177,7 @@ def visualize_prediction(predictor, dataset_type:str="val", num_display:int=3):
             v = Visualizer(im,
                         metadata=metadata,
                         scale=0.8,
-                        instance_mode = ColorMode.SEGMENTATION
+                        instance_mode = ColorMode(1)
                         #    instance_mode=ColorMode.IMAGE_BW   # remove the colors of unsegmented pixels
                         )
             v = v.draw_instance_predictions(outputs["instances"].to("cpu"))
