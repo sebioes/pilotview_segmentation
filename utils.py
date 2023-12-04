@@ -163,6 +163,7 @@ def visualize_prediction(predictor, dataset_type:str="val", num_display:int=3):
     for d in ["train", "val"]:
         DatasetCatalog.register(vis_dir + "_" + d, lambda d=d: get_data_dicts(custom_dataset_dir + "/" + d))
         MetadataCatalog.get(vis_dir + "_" + d).set(thing_classes=new_thing_classes, stuff_classes=new_stuff_classes)
+        MetadataCatalog.get(vis_dir + "_" + d).thing_classes = new_thing_classes
     metadata = MetadataCatalog.get(vis_dir + "_train")
 
     """Visualize prediction on certain dataset (val or test)"""
@@ -176,6 +177,7 @@ def visualize_prediction(predictor, dataset_type:str="val", num_display:int=3):
             v = Visualizer(im,
                         metadata=metadata,
                         scale=0.8,
+                        instance_mode = ColorMode.SEGMENTATION
                         #    instance_mode=ColorMode.IMAGE_BW   # remove the colors of unsegmented pixels
                         )
             v = v.draw_instance_predictions(outputs["instances"].to("cpu"))

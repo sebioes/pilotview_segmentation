@@ -6,12 +6,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', type=str, default=None, help='path to the video to be converted to frames')
     parser.add_argument('--percent', type=int, default=10, help='save a frame at every this percent of the video')
+    parser.add_argument('--save_dir', type=str, default="dataset", help='directory to save the frames')
     args = parser.parse_args()
 
     assert args.path is not None, "Please provide the path to the video to be converted to frames"
 
     # save dir
-    save_dir = "frames"
+    save_dir = args.save_dir
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
