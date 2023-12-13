@@ -6,7 +6,7 @@ import argparse
 """Modified work done by Sriharan Balakrishnan Selvarakumaran"""
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--path', type=str, default=None, help='path to the video to be converted to frames')
+parser.add_argument('--path', type=str, default=None, help='path to images to be converted to gif')
 args = parser.parse_args()
 
 # Directory containing your images
