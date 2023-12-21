@@ -2,6 +2,7 @@ import os
 from tqdm import tqdm
 from PIL import Image
 import argparse
+from natsort import natsorted
 
 """Modified work done by Sriharan Balakrishnan Selvarakumaran"""
 
@@ -13,7 +14,7 @@ args = parser.parse_args()
 image_dir = args.path
 
 # List all image files in the directory
-image_files = sorted([os.path.join(image_dir, f) for f in os.listdir(image_dir) if f.endswith(('.jpg', '.png', '.jpeg', '.gif'))])
+image_files = natsorted([os.path.join(image_dir, f) for f in os.listdir(image_dir) if f.endswith(('.jpg', '.png', '.jpeg', '.gif'))])
 
 # Create a list to hold image objects
 images = []
