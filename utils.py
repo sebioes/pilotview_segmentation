@@ -40,6 +40,9 @@ roi_heads_freeze_at = args.roi_heads_freeze_at
 new_classes = args.new_thing_classes + args.new_stuff_classes
 
 def get_data_dicts(img_dir):
+    """
+    Get the data dictionaries for the dataset.
+    """
     json_file = os.path.join(img_dir, "via_region_data.json")
     with open(json_file) as f:
         imgs_anns = json.load(f)
@@ -48,7 +51,7 @@ def get_data_dicts(img_dir):
     for idx, v in enumerate(imgs_anns.values()):
         record = {}
         
-        filename = os.path.join(img_dir, v["filename"])
+        filename = os.path.join(img_dir, "images", v["filename"])
         height, width = cv2.imread(filename).shape[:2]
         
         record["file_name"] = filename
@@ -58,22 +61,100 @@ def get_data_dicts(img_dir):
       
         annos = v["regions"]
         objs = []
-        for _, anno in annos.items():
-            # assert not anno["region_attributes"]
-            label = anno["region_attributes"]["label"]
-            anno = anno["shape_attributes"]
-            px = anno["all_points_x"]
-            py = anno["all_points_y"]
-            poly = [(x + 0.5, y + 0.5) for x, y in zip(px, py)]
-            poly = [p for x in poly for p in x]
-
-            obj = {
-                "bbox": [np.min(px), np.min(py), np.max(px), np.max(py)],
-                "bbox_mode": BoxMode.XYXY_ABS,
-                "segmentation": [poly],
-                # "category_id": 0,
-                "category_id": new_classes.index(label),
-            }
+        for anno in annos:
+            shape_attrs = anno["shape_attributes"]
+            shape_type = shape_attrs["name"]
+            
+            if shape_type == "polygon":
+                px = shape_attrs["all_points_x"]
+                py = shape_attrs["all_points_y"]
+                poly = [(x + 0.5, y + 0.5) for x, y in zip(px, py)]
+                poly = [p for x in poly for p in x]
+                
+                obj = {
+                    "bbox": [np.min(px), np.min(py), np.max(px), np.max(py)],
+                    "bbox_mode": BoxMode.XYXY_ABS,
+                    "segmentation": [poly],
+                    "category_id": 0,
+                }
+                
+            elif shape_type == "circle":
+                cx = shape_attrs["cx"]
+                cy = shape_attrs["cy"]
+                r = shape_attrs["r"]
+                
+                # Create a polygon approximation of the circle
+                num_points = 32
+                angles = np.linspace(0, 2*np.pi, num_points)
+                px = [cx + r*np.cos(angle) for angle in angles]
+                py = [cy + r*np.sin(angle) for angle in angles]
+                poly = [(x + 0.5, y + 0.5) for x, y in zip(px, py)]
+                poly = [p for x in poly for p in x]
+                
+                obj = {
+                    "bbox": [cx - r, cy - r, cx + r, cy + r],
+                    "bbox_mode": BoxMode.XYXY_ABS,
+                    "segmentation": [poly],
+                    "category_id": 0,
+                }
+                
+            elif shape_type == "rect":
+                x = shape_attrs["x"]
+                y = shape_attrs["y"]
+                width = shape_attrs["width"]
+                height = shape_attrs["height"]
+                
+                # Create polygon points for rectangle
+                px = [x, x + width, x + width, x]
+                py = [y, y, y + height, y + height]
+                poly = [(x + 0.5, y + 0.5) for x, y in zip(px, py)]
+                poly = [p for x in poly for p in x]
+                
+                obj = {
+                    "bbox": [x, y, x + width, y + height],
+                    "bbox_mode": BoxMode.XYXY_ABS,
+                    "segmentation": [poly],
+                    "category_id": 0,
+                }
+                
+            elif shape_type == "ellipse":
+                cx = shape_attrs["cx"]
+                cy = shape_attrs["cy"]
+                rx = shape_attrs["rx"]
+                ry = shape_attrs["ry"]
+                angle = shape_attrs.get("theta", 0)  # rotation angle in radians
+                
+                # Create a polygon approximation of the ellipse
+                num_points = 32
+                angles = np.linspace(0, 2*np.pi, num_points)
+                # Generate points for unrotated ellipse
+                px = [cx + rx*np.cos(t) for t in angles]
+                py = [cy + ry*np.sin(t) for t in angles]
+                
+                # Rotate points if needed
+                if angle != 0:
+                    cos_t = np.cos(angle)
+                    sin_t = np.sin(angle)
+                    px_rot = []
+                    py_rot = []
+                    for x, y in zip(px, py):
+                        x_rot = cx + (x - cx)*cos_t - (y - cy)*sin_t
+                        y_rot = cy + (x - cx)*sin_t + (y - cy)*cos_t
+                        px_rot.append(x_rot)
+                        py_rot.append(y_rot)
+                    px = px_rot
+                    py = py_rot
+                
+                poly = [(x + 0.5, y + 0.5) for x, y in zip(px, py)]
+                poly = [p for x in poly for p in x]
+                
+                obj = {
+                    "bbox": [min(px), min(py), max(px), max(py)],
+                    "bbox_mode": BoxMode.XYXY_ABS,
+                    "segmentation": [poly],
+                    "category_id": 0,
+                }
+            
             objs.append(obj)
         record["annotations"] = objs
         dataset_dicts.append(record)
@@ -104,6 +185,7 @@ def init_cfg(config_file: str):
     cfg.DATASETS.TEST = ()
     cfg.DATALOADER.NUM_WORKERS = 2
     cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(config_file)  # Let training initialize from model zoo
+    cfg.MODEL.DEVICE = "cpu"  # Force CPU usage
 
     # Threshold for our model's minimal confidence for an object to be detected
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = threshold
@@ -124,11 +206,15 @@ def init_cfg(config_file: str):
     cfg.MODEL.ROI_HEADS.FREEZE_AT = roi_heads_freeze_at
     cfg.MODEL.PROPOSAL_GENERATOR.FREEZE_AT = 0
 
+    # Training parameters
     cfg.SOLVER.IMS_PER_BATCH = batch
     cfg.SOLVER.BASE_LR = lr  
-    cfg.SOLVER.MAX_ITER = iter  
+    cfg.SOLVER.MAX_ITER = iter
     cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 512 # (default: 512)
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = num_new_classes # number of classes
+
+    # Set output directory
+    cfg.OUTPUT_DIR = "output"
 
     return cfg
 

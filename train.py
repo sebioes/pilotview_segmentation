@@ -65,6 +65,7 @@ if __name__ == "__main__":
     
     # Retrieve the model
     cfg = init_cfg(base_model)
+    cfg.MODEL.DEVICE = "cpu"  # Force CPU usage
     model = build_model(cfg)
     
     # Print number of parameters
@@ -73,8 +74,8 @@ if __name__ == "__main__":
     # Train
     launch(
         train,
-        num_gpus_per_machine=num_gpus_per_machine,  # Number of GPUs per machine
-        num_machines=num_machines,  # Number of machines
+        num_gpus_per_machine=0,  # Use CPU
+        num_machines=1,  # Single machine
         machine_rank=0,
         dist_url=None,
         args=(cfg,),
